@@ -1,0 +1,18 @@
+version: '2'
+services:
+  wabs:
+    environment:
+      - 'executable=blob'
+    image: 'arafato/azurite:2.6.5'
+    ports:
+      - '10000:10000'
+  s3:
+    image: 'fingershock/fakes3:0.2.4'
+    ports:
+      - '8000'
+  scylla:
+    image: 'scylladb/scylla:2.1.0'
+    volumes:
+      - "./.scylla_data_dir:/var/lib/scylla"
+    ports:
+      - 9042
