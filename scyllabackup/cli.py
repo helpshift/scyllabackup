@@ -6,7 +6,7 @@ import configargparse
 from . import logger
 from .snapshot import Snapshot
 from spongeblob.retriable_storage import RetriableStorage
-from filelock import FileLock
+import filelock
 
 
 def make_storage(args):
@@ -196,12 +196,15 @@ def parse_args(cli_args):
 
 def cli_run_with_lock(args=sys.argv[1:]):
     cli = parse_args(args)
-    lock = FileLock(cli.lock)
-    with lock.acquire(timeout=0):
-        log_level = getattr(logging, cli.log_level.upper())
-        logger.setLevel(log_level)
-        cli.func(cli)
-
+    lock = filelock.FileLock(cli.lock)
+    log_level = getattr(logging, cli.log_level.upper())
+    logger.setLevel(log_level)
+    try:
+        with lock.acquire(timeout=0):
+            cli.func(cli)
+    except filelock.Timeout:
+        logger.info("Another Instance of application already running")
+        sys.exit(2)
 
 if __name__ == '__main__':
     cli_run_with_lock()
