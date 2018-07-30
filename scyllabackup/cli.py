@@ -123,6 +123,9 @@ def common_parser():
 
     parser.add('--lock', default='/var/run/lock/scyllabackup.lock',
                help='Lock file for scyllabackup')
+
+    parser.add('--lock-timeout', type=int, default=10,
+               help='Lock file for scyllabackup')
     return parser
 
 
@@ -200,7 +203,7 @@ def cli_run_with_lock(args=sys.argv[1:]):
     log_level = getattr(logging, cli.log_level.upper())
     logger.setLevel(log_level)
     try:
-        with lock.acquire(timeout=0):
+        with lock.acquire(timeout=cli.lock_timeout):
             cli.func(cli)
     except filelock.Timeout:
         logger.info("Another Instance of application already running")
