@@ -149,12 +149,12 @@ class Snapshot:
                                         keyspace_name,
                                         table_name))
 
-        self._upload_queue.join()
-
         logger.info("Add file list in database for "
                     "snapshot {0}".format(snapshot_name))
         self.db.add_snapshot_files(snapshot_name, file_list)
         self._storage.upload_file(self.db_key, self.db_path)
+
+        self._upload_queue.join()
 
     def download_db(self, path):
         self._storage.download_file(self.db_key, path)
