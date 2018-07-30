@@ -39,8 +39,8 @@ def test_insert_snapshot_fail(sql_db, snapshot_one):
 
 
 def test_time_class(sql_db, snapshot_one):
-    get_a_row = sql_db._conn.execute('select * from '
-                                     'snapshots_files;').fetchone()
+    get_a_row = sql_db._conn.execute('select epoch from '
+                                     'snapshots').fetchone()
     epoch = get_a_row[0]
     assert isinstance(epoch, datetime.datetime)
 
@@ -68,8 +68,8 @@ def test_find_deletable_files_again(sql_db, snapshot_one):
     assert len(deletable_file_list) is 0
 
 
-def test_cleanup_snapshots_schemas_db(sql_db):
-    assert sql_db.cleanup_snapshots_schemas_db() is True
+def test_cleanup_files_db(sql_db):
+    assert sql_db.cleanup_files_db() is True
 
 
 def test_find_snapshot_files_again(sql_db, snapshot_one, snapshot_two):

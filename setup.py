@@ -17,6 +17,7 @@ setup(name='scyllabackup',
       test_suite='pytest',
       entry_points={
           'console_scripts': [
-              'scyllabackup = scyllabackup.cli:cli_run_with_lock'
+              'scyllabackup = scyllabackup.cli:cli_run_with_lock',
+              'scyllabackup_migrate = scyllabackup.migrate:main'
           ]
       })
