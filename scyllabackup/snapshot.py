@@ -228,7 +228,8 @@ class Snapshot:
             gevent.spawn(self.file_delete_worker)
         self._delete_queue.join()
         self.db.delete_snapshots_files_older_than(snapshot)
-        self.db.cleanup_files_db()
+        if self.db.cleanup_files_db():
+            self.db.vaccum()
 
     def file_delete_worker(self):
         while True:
