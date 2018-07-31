@@ -179,7 +179,7 @@ class Snapshot:
                                             os.path.join(path, *file_tuple))
 
             except Exception as e:
-                logger.error("Unexpected exception {0} encountered".format(e))
+                logger.exception("Unexpected exception {0} encountered".format(e))
                 sys.exit(4)
             finally:
                 self._download_queue.task_done()
@@ -215,7 +215,7 @@ class Snapshot:
                                               file_name,
                                               metadata={'mtime': file_mtime})
             except Exception as e:
-                logger.error("Unexpected exception {0} encountered".format(e))
+                logger.exception("Unexpected exception {0} encountered".format(e))
                 sys.exit(4)
             finally:
                 self._upload_queue.task_done()
@@ -241,7 +241,7 @@ class Snapshot:
             except AzureMissingResourceHttpError as e:
                 logger.error("Deletion of blob {0} failed. It's already deleted or missing.".format(storage_key))
             except Exception as e:
-                logger.error("Unexpected exception {0} encountered".format(e))
+                logger.exception("Unexpected exception {0} encountered".format(e))
                 sys.exit(4)
             finally:
                 self._delete_queue.task_done()
