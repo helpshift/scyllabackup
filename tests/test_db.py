@@ -22,14 +22,14 @@ def test_insert_schema2(sql_db, snapshot_two):
 
 
 def test_insert_snapshot_one(sql_db, snapshot_one):
-    file_list = (('keyspace1', 'table1', 'file{0}'.format(i))
-                 for i in range(1, 5))
+    file_list = [('keyspace1', 'table1', 'file{0}'.format(i))
+                 for i in range(1, 5)]
     sql_db.add_snapshot_files(snapshot_one, file_list)
 
 
 def test_insert_snapshot_two(sql_db, snapshot_two):
-    file_list = (('keyspace1', 'table1', 'file{0}'.format(i))
-                 for i in range(2, 4))
+    file_list = [('keyspace1', 'table1', 'file{0}'.format(i))
+                 for i in range(2, 4)]
     sql_db.add_snapshot_files(snapshot_two, file_list)
 
 

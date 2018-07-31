@@ -67,9 +67,9 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
             raise ValueError("Cannot convert given "
                              "instance {0} to epoch".format(epoch))
 
-    def add_schema(self, epoch, schema):
+    def add_schema(self, snapshot, schema):
         with self._conn as c:
-            epoch = DB.normalize_epoch(epoch)
+            snapshot = DB.normalize_epoch(snapshot)
             try:
                 c.execute('INSERT INTO schemas VALUES(?,?)', (None, schema))
             except sql.IntegrityError as e:
@@ -79,7 +79,7 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
                                'WHERE schema = ?')
             schema_id = next(c.execute(find_schema_sql, (schema,)))[0]
             c.execute('INSERT INTO snapshots VALUES(?,?,?)',
-                      (None, epoch, schema_id))
+                      (None, snapshot, schema_id))
 
     def add_snapshot_files(self, snapshot, files):
         snapshot = DB.normalize_epoch(snapshot)
@@ -145,7 +145,7 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
         with self._conn as c:
                 return next(c.execute(sql, (snapshot,)), (None,))[0]
 
-    def find_deletable_files(self, snapshot):
+    def find_deletable_files(self, epoch):
         sql = ('SELECT t.keyspace, t.tablename, f.file '
                'FROM files as f, tablenames as t '
                'WHERE f.table_id = t.table_id AND '
@@ -157,15 +157,15 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
                'SELECT DISTINCT file_id '
                'FROM snapshots_files WHERE snapshot_id '
                'IN (SELECT snapshot_id from snapshots WHERE epoch > ?))')
-        snapshot = DB.normalize_epoch(snapshot)
+        epoch = DB.normalize_epoch(epoch)
         with self._conn as c:
-            return c.execute(sql, (snapshot, snapshot))
+            return c.execute(sql, (epoch, epoch))
 
-    def delete_snapshots_files_older_than(self, snapshot):
+    def delete_snapshots_files_older_than(self, epoch):
         sql = ('DELETE FROM snapshots WHERE epoch <= ?')
-        snapshot = DB.normalize_epoch(snapshot)
+        epoch = DB.normalize_epoch(epoch)
         with self._conn as c:
-            return (c.execute(sql, (snapshot,)).rowcount > 0)
+            return (c.execute(sql, (epoch,)).rowcount > 0)
 
     def cleanup_files_db(self):
         sql = ('DELETE FROM files WHERE file_id not in '
