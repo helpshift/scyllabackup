@@ -33,7 +33,8 @@ class Snapshot:
                  cqlsh_path='/usr/bin/cqlsh',
                  cqlsh_host='127.0.0.1',
                  cqlsh_port='9042',
-                 prefix='scyllabackup'):
+                 prefix='scyllabackup',
+                 max_workers=4):
         self.scylla_data_dir = scylla_data_dir
         self.db = DB(db_path)
         self.db_path = db_path
@@ -45,7 +46,7 @@ class Snapshot:
         self._storage = storage_obj
         self._prefix = prefix
         self.db_key = self._prefix + '/' + os.path.split(self.db_path)[1]
-        self.max_worker = 10
+        self.max_workers = max_workers
 
     @staticmethod
     def mkdir_p(path):
@@ -124,7 +125,7 @@ class Snapshot:
                 path, basename = os.path.split(path)
                 yield basename
 
-        for i in range(self.max_worker):
+        for i in range(self.max_workers):
             gevent.spawn(self.file_upload_worker)
 
         file_list = []
@@ -163,7 +164,7 @@ class Snapshot:
                                                       keyspace_name):
             # file_tuple = tuple(keyspace,tablename,file)
             self._download_queue.put(file_tuple)
-        for i in range(self.max_worker):
+        for i in range(self.max_workers):
             gevent.spawn(self.file_download_worker, path)
         self._download_queue.join()
 
@@ -223,7 +224,7 @@ class Snapshot:
         for file_tuple in self.db.find_deletable_files(snapshot):
             self._delete_queue.put(file_tuple)
 
-        for i in range(self.max_worker):
+        for i in range(self.max_workers):
             gevent.spawn(self.file_delete_worker)
         self._delete_queue.join()
         self.db.delete_snapshots_files_older_than(snapshot)

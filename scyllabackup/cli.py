@@ -24,7 +24,8 @@ def make_snapshotter(args):
                     cqlsh_path=args.cqlsh_path,
                     cqlsh_host=args.cqlsh_host,
                     cqlsh_port=args.cqlsh_port,
-                    prefix=args.prefix)
+                    prefix=args.prefix,
+                    max_workers=args.max_workers)
 
 
 def take_snapshot(args):
@@ -126,6 +127,10 @@ def common_parser():
 
     parser.add('--lock-timeout', type=int, default=10,
                help='Lock file for scyllabackup')
+
+    parser.add('--max-workers', type=int, default=4,
+               help='Sets max workers for parallelizing storage api calls')
+
     return parser
 
 
