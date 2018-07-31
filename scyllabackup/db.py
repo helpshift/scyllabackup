@@ -97,7 +97,7 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
             raise ValueError("Cannot convert given "
                              "instance {0} to epoch".format(epoch))
 
-    def add_schema(self, snapshot, schema):
+    def add_snapshot(self, snapshot, schema):
         """Add a schema against a snapshot epoch in database
 
         :param snapshot: An object representing unix timestamp

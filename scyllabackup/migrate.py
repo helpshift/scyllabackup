@@ -18,7 +18,7 @@ def migrate_db_v1_to_v2(db_path):
     epoch_list = []
     for epoch, schema in old_db.execute('SELECT epoch, schema '
                                         'FROM snapshots_schemas'):
-        new_db.add_schema(epoch, schema)
+        new_db.add_snapshot(epoch, schema)
         epoch_list.append(epoch)
 
     for epoch in epoch_list:

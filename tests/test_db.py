@@ -14,11 +14,11 @@ def test_init_db(sql_db):
     sql_db._conn.cursor()
 
 def test_insert_schema(sql_db, snapshot_one):
-    sql_db.add_schema(snapshot_one, 'DUMMY SCHEMA')
+    sql_db.add_snapshot(snapshot_one, 'DUMMY SCHEMA')
 
 
 def test_insert_schema2(sql_db, snapshot_two):
-    sql_db.add_schema(snapshot_two, 'DUMMY SCHEMA2')
+    sql_db.add_snapshot(snapshot_two, 'DUMMY SCHEMA2')
 
 
 def test_insert_snapshot_one(sql_db, snapshot_one):

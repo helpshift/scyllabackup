@@ -105,7 +105,7 @@ class Snapshot:
         logger.debug("Trying to take snapshot of schema")
         try:
             schema = self.cqlsh('-e', 'DESC SCHEMA;')
-            self.db.add_schema(snapshot_name, schema.stdout)
+            self.db.add_snapshot(snapshot_name, schema.stdout)
         except ErrorReturnCode as e:
             logger.error("Failed to take schema backup for snapshot {0}".
                          format(snapshot_name))
