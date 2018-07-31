@@ -43,6 +43,7 @@ class Snapshot:
         self._upload_queue = gevent.queue.JoinableQueue()
         self._download_queue = gevent.queue.JoinableQueue()
         self._delete_queue = gevent.queue.JoinableQueue()
+        self._verify_queue = gevent.queue.JoinableQueue()
         self._storage = storage_obj
         self._prefix = prefix
         self.db_key = self._prefix + '/' + os.path.split(self.db_path)[1]
@@ -183,6 +184,41 @@ class Snapshot:
                 sys.exit(4)
             finally:
                 self._download_queue.task_done()
+
+    def verify_snapshot(self, snapshot_name):
+        self.verify_success = True
+
+        for i in range(self.max_workers):
+            gevent.spawn(self.file_verify_worker)
+
+        for file_tuple in self.db.find_snapshot_files(snapshot_name):
+            # file_tuple = tuple(keyspace,tablename,file)
+            self._verify_queue.put(file_tuple)
+
+        self._verify_queue.join()
+
+        return self.verify_success
+
+    def file_verify_worker(self):
+        while True:
+            try:
+                # file_tuple = tuple(keyspace,tablename,file)
+                file_tuple = self._verify_queue.get()
+                storage_key = '/'.join((self._prefix,) + file_tuple)
+                remote_file = next(self._storage.list_object_keys(storage_key),
+                                   None)
+                if remote_file is None:
+                    logger.error("Remote file {0} "
+                                 "doesn't exist".format(storage_key))
+                    self.verify_success = False
+                else:
+                    logger.debug("Remote file {0} "
+                                 "is present in storage".format(storage_key))
+            except Exception as e:
+                logger.exception("Unexpected exception encountered")
+                sys.exit(4)
+            finally:
+                self._verify_queue.task_done()
 
     def file_upload_worker(self):
         while True:

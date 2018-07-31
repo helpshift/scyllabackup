@@ -24,6 +24,7 @@ def test_nodetool_take_snapshot_one(snapshotter, snapshot_one):
 
 def test_add_snapshot_one_db(snapshotter, snapshot_one):
     snapshotter.upload_snapshot(snapshot_one)
+    assert snapshotter.verify_snapshot(snapshot_one) is True
 
 
 def test_setup_data_snapshot_two(snapshotter):
@@ -42,6 +43,7 @@ def test_nodetool_take_snapshot_two(snapshotter, snapshot_two):
 
 def test_add_snapshot_two_db(snapshotter, snapshot_two):
     snapshotter.upload_snapshot(snapshot_two)
+    assert snapshotter.verify_snapshot(snapshot_two) is True
 
 
 def test_nodetool_delete_snapshot(snapshotter, snapshot_one):
@@ -82,8 +84,10 @@ def test_nodetool_take_snapshot_three(snapshotter, snapshot_three):
     snapshotter.snapshot_file_glob(snapshot_three, 'excelsior2').next()
 
 
+
 def test_add_snapshot_three_db(snapshotter, snapshot_three):
     snapshotter.upload_snapshot(snapshot_three)
+    assert snapshotter.verify_snapshot(snapshot_three) is True
 
 
 def test_delete_snapshot(snapshotter, snapshot_two, snapshot_three):

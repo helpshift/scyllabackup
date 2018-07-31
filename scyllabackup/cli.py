@@ -73,6 +73,16 @@ def download_snapshot(args):
             f.write(schema)
 
 
+def verify_snapshot(args):
+    logger.info("Verifying snapshot {0}".format(args.snapshot))
+    success = args.snapshotter.verify_snapshot(snapshot_name=args.snapshot)
+    if success:
+        logger.info("All files exist remotely")
+    else:
+        logger.error("Some remote files don't exist")
+        sys.exit(2)
+
+
 def delete_older_than_snapshot(args):
     ts = (datetime.now() - timedelta(days=args.days)).strftime("%s")
     logger.info("Deleting snapshot files for "
@@ -194,6 +204,13 @@ def parse_args(cli_args):
                help='Delete all snapshots older '
                'than specified days')
     delete.set_defaults(func=delete_older_than_snapshot)
+
+    verify = subparsers.add_parser('verify',
+                                   help='Verify all files of a snapshot',
+                                   parents=[parent_parser])
+    verify.add('snapshot', type=int,
+               help='Snapshot Name for which files will be verified')
+    verify.set_defaults(func=verify_snapshot)
 
     args = parser.parse_args(cli_args)
     validate_storage_args(args, parser)
