@@ -265,7 +265,7 @@ class Snapshot:
         self._delete_queue.join()
         self.db.delete_snapshots_files_older_than(snapshot)
         if self.db.cleanup_files_db():
-            self.db.vaccum()
+            self.db.vacuum()
 
     def file_delete_worker(self):
         while True:

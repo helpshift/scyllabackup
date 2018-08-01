@@ -255,8 +255,8 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
         with self._conn as c:
             return (c.execute(sql).rowcount > 0)
 
-    def vaccum(self):
-        """Run vaccum function on database
+    def vacuum(self):
+        """Run vacuum function on database
         """
         with self._conn as c:
             c.execute("VACUUM")
