@@ -6,6 +6,7 @@ import configargparse
 from . import logger
 from .snapshot import Snapshot
 from spongeblob.retriable_storage import RetriableStorage
+from botocore.client import Config
 import filelock
 
 
@@ -13,6 +14,13 @@ def make_storage(args):
     storage_args = {key.split('_', 1)[1]: value
                     for key, value in args.__dict__.items()
                     if key.startswith(args.provider)}
+
+    if args.provider == 's3':
+        # modify storage client max_pool_connections
+        storage_args['boto_config'] = Config(connect_timeout=60,
+                                             read_timeout=60,
+                                             max_pool_connections=100)
+
     return RetriableStorage(args.provider, **storage_args)
 
 
