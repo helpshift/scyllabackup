@@ -1,5 +1,7 @@
 import logging
 import os
+import sh
+from conftest import is_open
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +56,6 @@ def test_nodetool_delete_snapshot(snapshotter, snapshot_one):
         assert isinstance(e, StopIteration)
 
 
-def test_download_snapshot(scylla_restore_dir, snapshotter, snapshot_two):
-    snapshotter.download_snapshot(scylla_restore_dir,
-                                  snapshot_two, 'excelsior')
-
-
 def test_delete_data_snapshot_three(snapshotter):
     cql = snapshotter.cqlsh.bake("-e")
     cql("DROP TABLE Excelsior.test;")
@@ -84,10 +81,51 @@ def test_nodetool_take_snapshot_three(snapshotter, snapshot_three):
     snapshotter.snapshot_file_glob(snapshot_three, 'excelsior2').next()
 
 
-
 def test_add_snapshot_three_db(snapshotter, snapshot_three):
     snapshotter.upload_snapshot(snapshot_three)
     assert snapshotter.verify_snapshot(snapshot_three) is True
+
+
+def test_download_db(snapshotter, scylla_restore_dir, sql_restore_db_file):
+    snapshotter.download_db(sql_restore_db_file)
+
+
+def test_download_snapshot(scylla_restore_dir, restore_snapshotter,
+                           snapshot_two):
+    restore_snapshotter.download_snapshot(scylla_restore_dir,
+                                          snapshot_two, 'excelsior')
+
+
+def test_restore_schema(scylla_restore_dir, restore_snapshotter, snapshot_two,
+                        cql_restore_file, cql_restore_file_in_docker):
+    with open(cql_restore_file, 'w+') as f:
+        f.write(restore_snapshotter.db.find_snapshot_schema(snapshot_two))
+    restore_snapshotter.restore_schema(cql_restore_file_in_docker)
+
+
+def test_restore_snapshot(docker_compose_file, docker_compose_project_name,
+                          restore_snapshotter, scylla_restore_dir):
+    restore_mapping = (restore_snapshotter.
+                       restore_snapshot_mapping(scylla_restore_dir,
+                                                'excelsior'))
+    docker_compose_args = ['-f', docker_compose_file, '-p',
+                           docker_compose_project_name]
+
+    docker_compose = sh.Command('docker-compose').bake(*docker_compose_args)
+    docker_compose('stop', 'scylla_restore')
+    restore_snapshotter.restore_snapshot(scylla_restore_dir, restore_mapping)
+    docker_compose('start', 'scylla_restore')
+    wait_for_port = (docker_compose('port', 'scylla_restore', '9042').
+                     split(":")[1])
+    # Wait for the scylla restore container to start
+    for i in range(30):
+        if is_open('127.0.0.1', wait_for_port):
+            break
+
+    out = docker_compose('exec', '-T', 'scylla_restore', 'cqlsh',
+                         '-e', 'select * from excelsior.test;')
+    data_lines = [line for line in out.splitlines() if 'static' in line]
+    assert len(data_lines) is 3
 
 
 def test_delete_snapshot(snapshotter, snapshot_two, snapshot_three):
@@ -100,6 +138,3 @@ def test_delete_snapshot(snapshotter, snapshot_two, snapshot_three):
     assert len(list(snapshotter._storage.list_object_keys(prefix='scyllabackup/excelsior/test'))) == 0
     assert len(list(snapshotter._storage.list_object_keys(prefix='scyllabackup/excelsior2/test'))) > 0
 
-
-def test_download_db(snapshotter, scylla_restore_dir):
-    snapshotter.download_db(os.path.join(scylla_restore_dir, 'backup_test.db'))

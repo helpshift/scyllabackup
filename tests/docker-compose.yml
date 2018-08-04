@@ -16,3 +16,9 @@ services:
       - "./.scylla_data_dir:/var/lib/scylla"
     ports:
       - 9042
+  scylla_restore:
+    image: 'scylladb/scylla:2.1.0'
+    volumes:
+      - "./.scylla_data_dir2:/var/lib/scylla"
+    ports:
+      - 9042

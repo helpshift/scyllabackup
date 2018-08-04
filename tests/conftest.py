@@ -82,7 +82,7 @@ def is_open(ip, port):
 
 @pytest.fixture(scope='session')
 def scylla_test_dir(tmpdir_factory):
-    return tmpdir_factory.mktemp('scylla_data_dir')
+    return tmpdir_factory.mktemp('scylla_test_dir')
 
 
 @pytest.fixture(scope='session')
@@ -92,14 +92,28 @@ def scylla_data_symlink(pytestconfig):
 
 
 @pytest.fixture(scope='session')
+def scylla_data_symlink2(pytestconfig):
+    return os.path.join(str(pytestconfig.rootdir),
+                        'tests', './.scylla_data_dir2')
+
+
+@pytest.fixture(scope='session')
 def scylla_data_dir(scylla_test_dir):
-    f = scylla_test_dir.mkdir('test')
+    f = scylla_test_dir.mkdir('scylla_data_dir')
     return str(f)
 
 
 @pytest.fixture(scope='session')
-def docker_compose_file(pytestconfig, scylla_data_dir, scylla_data_symlink):
+def scylla_data_dir2(scylla_test_dir):
+    f = scylla_test_dir.mkdir('scylla_data_dir2')
+    return str(f)
+
+
+@pytest.fixture(scope='session')
+def docker_compose_file(pytestconfig, scylla_data_dir, scylla_data_symlink,
+                        scylla_data_dir2, scylla_data_symlink2):
     sh.ln('-snf', scylla_data_dir, scylla_data_symlink)
+    sh.ln('-snf', scylla_data_dir2, scylla_data_symlink2)
     return os.path.join(
         str(pytestconfig.rootdir),
         'tests',
@@ -147,14 +161,32 @@ def storage_client(blob_services, request, test_with_docker, test_data, test_pro
 
 @pytest.fixture(scope='session')
 def sql_db_file(scylla_test_dir):
-    f = scylla_test_dir.join('test', 'test.db')
+    f = scylla_test_dir.join('scylla_data_dir', 'test.db')
+    return str(f)
+
+
+@pytest.fixture(scope='session')
+def sql_restore_db_file(scylla_test_dir):
+    f = scylla_test_dir.join('scylla_data_dir2', 'restore.db')
     return str(f)
 
 
 @pytest.fixture(scope='session')
 def scylla_restore_dir(scylla_test_dir):
-    f = scylla_test_dir.mkdir('test/restore_scylla')
+    f = scylla_test_dir.mkdir('scylla_data_dir2/restore_scylla')
     return str(f)
+
+
+@pytest.fixture(scope='session')
+def cql_restore_file(scylla_restore_dir):
+    return os.path.join(scylla_restore_dir, 'restore.cql')
+
+
+@pytest.fixture(scope='session')
+def cql_restore_file_in_docker(scylla_restore_dir, cql_restore_file):
+    return os.path.join('/var/lib/scylla/',
+                        os.path.basename(scylla_restore_dir),
+                        os.path.basename(cql_restore_file))
 
 
 @pytest.fixture(scope='session')
@@ -174,13 +206,13 @@ def snapshot_three():
     return datetime.datetime.now().strftime('%s')
 
 
-@pytest.fixture(scope='session')
-def snapshotter(docker_compose_file, docker_compose_project_name,
-                scylla_data_symlink, sql_db_file, storage_client):
+def snapshotter_object(docker_compose_file, docker_compose_project_name,
+                       scylla_data_symlink, sql_db_file, storage_client,
+                       docker_service_name):
 
     scylla_docker_cmd = ['-f', docker_compose_file, '-p',
                          docker_compose_project_name, 'exec',
-                         '-T', 'scylla']
+                         '-T', docker_service_name]
 
     nodetool_cmd = scylla_docker_cmd + ['nodetool']
     cqlsh_cmd = scylla_docker_cmd + ['cqlsh']
@@ -196,3 +228,19 @@ def snapshotter(docker_compose_file, docker_compose_project_name,
     obj.cqlsh = sh.Command('docker-compose').bake(*cqlsh_cmd)
 
     return obj
+
+
+@pytest.fixture(scope='session')
+def snapshotter(docker_compose_file, docker_compose_project_name,
+                scylla_data_symlink, sql_db_file, storage_client):
+    return snapshotter_object(docker_compose_file, docker_compose_project_name,
+                              scylla_data_symlink, sql_db_file, storage_client,
+                              'scylla')
+
+
+@pytest.fixture(scope='session')
+def restore_snapshotter(docker_compose_file, docker_compose_project_name,
+                        scylla_data_symlink2, sql_restore_db_file, storage_client):
+    return snapshotter_object(docker_compose_file, docker_compose_project_name,
+                              scylla_data_symlink2, sql_restore_db_file,
+                              storage_client, 'scylla_restore')

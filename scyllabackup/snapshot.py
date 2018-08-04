@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 import errno
+from shutil import move
 
 from sh import ErrorReturnCode, Command
 from .db import DB
@@ -281,3 +282,55 @@ class Snapshot:
                 sys.exit(4)
             finally:
                 self._delete_queue.task_done()
+
+    def find_new_table_path(self, keyspace_name, table_name):
+        cql = ("EXPAND ON; "
+               "SELECT id FROM system_schema.tables "
+               "WHERE keyspace_name = '{0}' "
+               "AND table_name= '{1}';").format(keyspace_name, table_name)
+        cql_cmd = self.cqlsh.bake('--no-color', '-e', cql)
+        uuid_lines = [line for line in cql_cmd().splitlines()
+                      if line.startswith(' id | ')]
+        if len(uuid_lines) != 1:
+            raise ValueError(('Matching id found for given keyspace and '
+                              'table not equal to 1'))
+        uuid = uuid_lines[0].split()[-1].replace('-', '')
+        table_path_name = "{0}-{1}".format(table_name, uuid)
+        return os.path.join(self.scylla_data_dir, keyspace_name,
+                            table_path_name)
+
+    def restore_schema(self, restore_schema_path):
+        try:
+            self.cqlsh.bake('-f')(restore_schema_path)
+        except ErrorReturnCode as e:
+            logger.error("Error while restoring schema")
+            log_shell_exception_and_exit(e)
+
+    def restore_snapshot_mapping(self, restore_path, keyspace_name):
+        tables = (os.path.basename(table_path) for table_path in
+                  glob.iglob(os.path.join(restore_path, keyspace_name, '*'))
+                  if os.path.isdir(table_path))
+
+        restore_mapping = {}
+        for table in tables:
+            old_table_path = os.path.join(restore_path, keyspace_name, table)
+            # NOTE: Removing 33 chars from table_name removes the '-<UUID>'
+            # from table_path, which is the required arg for
+            # `find_new_table_path`
+            new_table_path = self.find_new_table_path(keyspace_name,
+                                                      table[:-33])
+
+            files_in_new_table_path = filter(lambda x: os.path.isfile(x),
+                                             os.listdir(new_table_path))
+            if len(files_in_new_table_path) > 0:
+                logger.error("Newly created table has some existing files.")
+                sys.exit(2)
+
+            restore_mapping[old_table_path] = new_table_path
+
+        return restore_mapping
+
+    def restore_snapshot(self, restore_path, restore_mapping):
+        for old_table_path, new_table_path in restore_mapping.items():
+            for file_path in glob.iglob(os.path.join(old_table_path, '*')):
+                move(file_path, new_table_path)
