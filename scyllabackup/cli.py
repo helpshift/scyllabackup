@@ -68,15 +68,22 @@ def download_snapshot(args):
         logger.error(error_msg + ", can't download")
         raise OSError(error_code, error_msg)
 
-    logger.info("Downloading files for snapshot {0}".format(args.snapshot))
+    if args.latest_before:
+        download_snapshot = next(args.snapshotter.db.
+                                 find_snapshots_before_epoch(
+                                     args.latest_before, count=1))
+    else:
+        download_snapshot = args.snapshot
+
+    logger.info("Downloading files for snapshot {0}".format(download_snapshot))
     args.snapshotter.download_snapshot(path=args.download_dir,
-                                       snapshot_name=args.snapshot,
+                                       snapshot_name=download_snapshot,
                                        keyspace_name=args.keyspace)
 
     schema = args.snapshotter.db.find_snapshot_schema(args.snapshot)
     if schema:
         logger.info("Downloading schema file for snapshot "
-                    "{0} at {1}".format(args.snapshot, args.schema))
+                    "{0} at {1}".format(download_snapshot, args.schema))
         with open(args.schema, 'w+') as f:
             f.write(schema)
 
@@ -167,7 +174,7 @@ def parse_args(cli_args):
     parent_parser = common_parser()
     parser = configargparse.ArgParser(
         default_config_files=[],
-        description="Tool to manage scyllabackups"
+        description="Tool to manage scylla backups"
     )
 
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -190,8 +197,10 @@ def parse_args(cli_args):
                  'specified keyspace only')
     download.add('--download-dir', required=True,
                  help='Specify directory path to download snapshot files')
-    download.add('--snapshot', required=True,
-                 help='Specify snapshot to be downloaded')
+    download_group = download.add_mutually_exclusive_group(required=True)
+    download_group.add('--snapshot', help='Specify snapshot to be downloaded')
+    download_group.add('--latest-before', help='If specified, latest snapshot '
+                       'before or equal to specified unix timestamp will be fetched.')
     download.add('--schema', required=True,
                  help='Specify file path to download scylla database '
                  'schema file before applying it to db ')

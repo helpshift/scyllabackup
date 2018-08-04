@@ -168,6 +168,14 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
         with self._conn as c:
             return (ts.strftime('%s') for (ts,) in c.execute(sql))
 
+    def find_snapshots_before_epoch(self, epoch, count=1):
+        sql = ("SELECT epoch FROM snapshots WHERE epoch <= ? "
+               "ORDER BY epoch DESC LIMIT ?")
+        epoch = DB.normalize_epoch(epoch)
+        with self._conn as c:
+            return (ts.strftime('%s') for (ts,) in c.execute(sql, (epoch,
+                                                                   count)))
+
     def find_snapshot_files(self, snapshot, keyspace=None):
         """Return an iterator of files present for current snapshot
 
@@ -242,6 +250,8 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
         epoch = DB.normalize_epoch(epoch)
         with self._conn as c:
             return (c.execute(sql, (epoch,)).rowcount > 0)
+
+
 
     def cleanup_files_db(self):
         """Cleanup files db for files not present in any snapshot
