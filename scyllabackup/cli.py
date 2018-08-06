@@ -46,7 +46,13 @@ def take_snapshot(args):
 
 def list_snapshots(args):
     logger.info("Finding snapshots from database")
-    for snapshot in args.snapshotter.db.find_snapshots():
+    if args.latest_before:
+        snapshot_list = (args.snapshotter.db.
+                         find_snapshots_before_epoch(args.latest_before,
+                                                     count=5))
+    else:
+        snapshot_list = args.snapshotter.db.find_snapshots()
+    for snapshot in snapshot_list:
         print("Found Snapshot '{0}' "
               "taken at {1}".format(snapshot,
                                     datetime.fromtimestamp(
@@ -187,6 +193,8 @@ def parse_args(cli_args):
 
     ls = subparsers.add_parser('list', help='List scylla snapshots',
                                parents=[parent_parser])
+    ls.add('--latest-before', help='If specified, last 5 snapshot '
+           'before specified timestamp will be listed.')
     ls.set_defaults(func=list_snapshots)
 
     download = subparsers.add_parser('download',
