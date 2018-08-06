@@ -162,6 +162,11 @@ class Snapshot:
         self._storage.download_file(self.db_key, path)
 
     def download_snapshot(self, path, snapshot_name, keyspace_name=None):
+        snapshot_id = self.db.find_snapshot_id(snapshot_name)
+        if snapshot_id is None:
+            logger.error("Specified snapshot doesn't exist, please specify a valid snapshot.")
+            sys.exit(2)
+
         for file_tuple in self.db.find_snapshot_files(snapshot_name,
                                                       keyspace_name):
             # file_tuple = tuple(keyspace,tablename,file)

@@ -176,6 +176,19 @@ CREATE INDEX IF NOT EXISTS snapshots_files_file_id_idx ON snapshots_files(file_i
             return (ts.strftime('%s') for (ts,) in c.execute(sql, (epoch,
                                                                    count)))
 
+    def find_snapshot_id(self, epoch):
+        """Return a snapshot_id for given epoch. Return `None` if snapshot_id doesn't exist
+
+        :param epoch: An object representing unix timestamp
+        :returns: Snapshot id if snapshot exists
+        :rtype: int or None
+
+        """
+        sql = 'SELECT snapshot_id FROM snapshots WHERE epoch = ?'
+        epoch = DB.normalize_epoch(epoch)
+        with self._conn as c:
+            return next(c.execute(sql, (epoch,)), (None,))[0]
+
     def find_snapshot_files(self, snapshot, keyspace=None):
         """Return an iterator of files present for current snapshot
 
