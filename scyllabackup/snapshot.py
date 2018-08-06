@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def log_shell_exception_and_exit(e):
     logger.error("Command failed with exit code '{0}': {1}".
                  format(e.exit_code, e.__dict__))
-    sys.exit(e.exit_code)
+    sys.exit(2)
 
 
 class Snapshot:
