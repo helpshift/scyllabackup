@@ -8,6 +8,7 @@ from .snapshot import Snapshot
 from spongeblob.retriable_storage import RetriableStorage
 from botocore.client import Config
 import filelock
+import json
 
 
 def make_storage(args):
@@ -86,7 +87,7 @@ def download_snapshot(args):
                                        snapshot_name=download_snapshot,
                                        keyspace_name=args.keyspace)
 
-    schema = args.snapshotter.db.find_snapshot_schema(args.snapshot)
+    schema = args.snapshotter.db.find_snapshot_schema(download_snapshot)
     if schema:
         logger.info("Downloading schema file for snapshot "
                     "{0} at {1}".format(download_snapshot, args.schema))
@@ -118,6 +119,48 @@ def download_db(args):
         logger.error(error_msg + ", can't download")
         raise OSError(17, error_msg)
     args.snapshotter.download_db(args.db_download_path)
+
+
+def restore_schema_in_scylladb(args):
+    if (args.force or
+        raw_input('Do you want to restore schema file {0} in scylladb [y/n]?'.
+                  format(args.schema_file))[0].lower() == 'y'):
+        args.snapshotter.restore_schema(args.schema_file)
+    else:
+        logger.error("Not restoring schema file")
+        sys.exit(2)
+
+
+def get_restore_mapping(args):
+    if not os.path.isdir(os.path.join(args.restore_path, args.keyspace)):
+        logger.error("Restore data dir specified doesn't exist for "
+                     "specified keyspace: {0}".format(args.keyspace))
+        sys.exit(2)
+
+    if os.path.isfile(args.restore_mapping_file):
+        logger.error("Restore mapping file {0} already "
+                     "exists".format(args.restore_mapping_file))
+        sys.exit(2)
+    with open(args.restore_mapping_file, 'w+') as f:
+        f.write(json.dumps(args.snapshotter.
+                           restore_snapshot_mapping(args.restore_path,
+                                                    args.keyspace)))
+
+
+def restore_snapshot(args):
+    if not os.path.isfile(args.restore_mapping_file):
+        logger.error("Restore mapping file {0} doesn't "
+                     "exists".format(args.restore_mapping_file))
+        sys.exit(2)
+    if not os.path.isdir(args.restore_path):
+        logger.error("Restore data dir {0} doesn't "
+                     "exist".format(args.restore_path))
+        sys.exit(2)
+
+    with open(args.restore_mapping_file, 'r') as f:
+        restore_mapping = json.load(f)
+
+    args.snapshotter.restore_snapshot(args.restore_path, restore_mapping)
 
 
 def common_parser():
@@ -236,6 +279,41 @@ def parse_args(cli_args):
     verify.add('snapshot', type=int,
                help='Snapshot Name for which files will be verified')
     verify.set_defaults(func=verify_snapshot)
+
+    restore_schema = subparsers.add_parser('restore_schema', help='Restore '
+                                           'schema from specified file in '
+                                           'scylladb', parents=[parent_parser])
+    restore_schema.add('schema_file',
+                       help="Path of the cql file to restore db schema")
+    restore_schema.add('-f', '--force', action='store_true',
+                       help="Skip confirmation if specified.")
+    restore_schema.set_defaults(func=restore_schema_in_scylladb)
+
+    restore_mapping = (subparsers.
+                       add_parser('get_restore_mapping', help='Get restore '
+                                  'mapping for moving files from old database '
+                                  'folders to new database folders. This '
+                                  'command outputs a json output on stdout '
+                                  'which can then be used by the restore '
+                                  'command', parents=[parent_parser]))
+    restore_mapping.add('--keyspace', required=True, help='Keyspace for which '
+                        'you want to get restore mappings')
+    restore_mapping.add('--restore-path', required=True, help='Path where the '
+                        'restore files were downloaded via `download` command')
+    restore_mapping.add('restore_mapping_file', help='Path where restore '
+                        'mapping file will be stored')
+    restore_mapping.set_defaults(func=get_restore_mapping)
+
+    restore = (subparsers.
+               add_parser('restore', help='Get restore mapping for moving '
+                          'files from old database folders to new database '
+                          'folders', parents=[parent_parser]))
+
+    restore.add('--restore-path', help='Path where the restore files are '
+                'downloaded')
+    restore.add('--restore-mapping-file', help='JSON mapping of folders to move '
+                'file from one folder to another folder')
+    restore.set_defaults(func=restore_snapshot)
 
     args = parser.parse_args(cli_args)
     validate_storage_args(args, parser)

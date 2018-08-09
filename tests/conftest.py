@@ -190,6 +190,11 @@ def cql_restore_file_in_docker(scylla_restore_dir, cql_restore_file):
 
 
 @pytest.fixture(scope='session')
+def cli_restore_mapping_file(scylla_restore_dir):
+    return os.path.join(scylla_restore_dir, 'restore_mapping.json')
+
+
+@pytest.fixture(scope='session')
 def snapshot_one():
     return datetime.datetime.now().strftime('%s')
 
