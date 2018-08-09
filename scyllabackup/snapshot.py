@@ -47,7 +47,7 @@ class Snapshot:
         self._verify_queue = gevent.queue.JoinableQueue()
         self._storage = storage_obj
         self._prefix = prefix
-        self.db_key = self._prefix + '/' + os.path.split(self.db_path)[1]
+        self.db_key = self._prefix + '/' + os.path.basename(self.db_path)
         self.max_workers = max_workers
 
     @staticmethod
