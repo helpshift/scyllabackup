@@ -2,6 +2,7 @@ scyllabackup.egg-info
 .tox
 .pytest_cache
 tests/.scylla_data_dir
+tests/.scylla_data_dir2
 tests/__pycache__
 *.pyc
 .DS_Store
