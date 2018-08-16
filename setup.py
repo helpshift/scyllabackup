@@ -1,12 +1,19 @@
 from setuptools import setup, find_packages
+from os import path
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md')) as f:
+    long_description = f.read()
 
 setup(name='scyllabackup',
-      version='0.0.2',
+      version='0.1.0',
       description='Scyllabackup: A tool for taking scylla backups',
       url='https://github.com/helpshift/scyllabackup',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       license='MIT License',
       packages=find_packages(),
-      install_requires=['spongeblob==0.0.3',
+      install_requires=['spongeblob==0.1.1',
                         'tenacity==4.10.0',
                         'sh==1.12.14',
                         'gevent==1.2.2',
