@@ -211,9 +211,7 @@ class Snapshot:
                 # file_tuple = tuple(keyspace,tablename,file)
                 file_tuple = self._verify_queue.get()
                 storage_key = '/'.join((self._prefix,) + file_tuple)
-                remote_file = next(self._storage.list_object_keys(storage_key,
-                                                                  pagesize=1),
-                                   None)
+                remote_file = self._storage.get_object_properties(storage_key)
                 if remote_file is None:
                     logger.error("Remote file {0} "
                                  "doesn't exist".format(storage_key))
@@ -236,11 +234,9 @@ class Snapshot:
                 key = '/'.join((self._prefix, keyspace_name,
                                 table_name, file_base_name))
 
-                remote_file = next(self._storage.
-                                   list_object_keys(key,
-                                                    metadata=True,
-                                                    pagesize=1),
-                                   None)
+                remote_file = (self._storage.
+                               get_object_properties(key,
+                                                     metadata=True))
 
                 file_stat = os.stat(file_name)
                 file_size = file_stat.st_size
