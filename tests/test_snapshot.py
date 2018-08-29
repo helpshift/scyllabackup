@@ -2,6 +2,7 @@ import logging
 import os
 import sh
 from conftest import is_open
+import pytest
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,13 @@ def test_restore_snapshot(docker_compose_file, docker_compose_project_name,
     docker_compose = sh.Command('docker-compose').bake(*docker_compose_args)
     docker_compose('stop', 'scylla_restore')
     restore_snapshotter.restore_snapshot(scylla_restore_dir, restore_mapping)
+
+    # NOTE: Restore will fail second time as the table directory is not empty
+    with pytest.raises(SystemExit) as exit_non_empty_dir:
+        restore_snapshotter.restore_snapshot(scylla_restore_dir,
+                                             restore_mapping)
+    assert exit_non_empty_dir.value.code == 2
+
     docker_compose('start', 'scylla_restore')
     wait_for_port = (docker_compose('port', 'scylla_restore', '9042').
                      split(":")[1])

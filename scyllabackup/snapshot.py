@@ -534,12 +534,6 @@ class Snapshot:
             new_table_path = self.find_new_table_path(keyspace_name,
                                                       table[:-33])
 
-            files_in_new_table_path = filter(lambda x: os.path.isfile(x),
-                                             os.listdir(new_table_path))
-            if len(files_in_new_table_path) > 0:
-                logger.error("Newly created table has some existing files.")
-                sys.exit(2)
-
             restore_mapping[old_table_path] = new_table_path
 
         return restore_mapping
@@ -557,6 +551,23 @@ class Snapshot:
         :rtype: None
 
         """
+        # Ensure that target restore dirs do not have any existing files
+        target_dir_empty = True
+        for new_table_path in restore_mapping.values():
+            files_in_new_table_path = filter(lambda f:
+                                             os.path.isfile(os.path.join
+                                                            (new_table_path,
+                                                             f)),
+                                             os.listdir(new_table_path))
+            if len(files_in_new_table_path) > 0:
+                target_dir_empty = False
+                table_name = os.path.basename(new_table_path)[:-33]
+                logger.error("Newly created table {0} has some existing files "
+                             "in {1}".format(table_name, new_table_path))
+
+        if not target_dir_empty:
+            sys.exit(2)
+
         for old_table_path, new_table_path in restore_mapping.items():
             for file_path in glob.iglob(os.path.join(old_table_path, '*')):
                 move(file_path, new_table_path)
