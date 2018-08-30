@@ -1,5 +1,4 @@
 import logging
-import os
 import sh
 from conftest import is_open
 import pytest
