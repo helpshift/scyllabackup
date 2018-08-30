@@ -568,6 +568,12 @@ class Snapshot:
         if not target_dir_empty:
             sys.exit(2)
 
+        nodetool_status = self.nodetool('status', _ok_code=[0, 1])
+        if nodetool_status.exit_code is 0:
+            logger.error('Nodetool status command was successful. Scylladb is '
+                         'still running, it must be stopped before restoring!')
+            sys.exit(3)
+
         for old_table_path, new_table_path in restore_mapping.items():
             for file_path in glob.iglob(os.path.join(old_table_path, '*')):
                 move(file_path, new_table_path)

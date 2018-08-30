@@ -109,10 +109,17 @@ def test_restore_snapshot(docker_compose_file, docker_compose_project_name,
     restore_mapping = (restore_snapshotter.
                        restore_snapshot_mapping(scylla_restore_dir,
                                                 'excelsior'))
+
     docker_compose_args = ['-f', docker_compose_file, '-p',
                            docker_compose_project_name]
-
     docker_compose = sh.Command('docker-compose').bake(*docker_compose_args)
+
+    # NOTE: Restore should fail as scylla is still up
+    with pytest.raises(SystemExit) as exit_scylla_still_up:
+        restore_snapshotter.restore_snapshot(scylla_restore_dir,
+                                             restore_mapping)
+    assert exit_scylla_still_up.value.code == 3
+
     docker_compose('stop', 'scylla_restore')
     restore_snapshotter.restore_snapshot(scylla_restore_dir, restore_mapping)
 
