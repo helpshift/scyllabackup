@@ -166,27 +166,36 @@ def restore_snapshot(args):
 def common_parser():
     parser = configargparse.ArgParser(add_help=False)
     parser.add('-c', '--conf-file', is_config_file=True,
-               help='config file path')
+               help='Config file for scyllabackup')
 
     parser.add('-l', '--log-level', default='WARNING',
                choices=['DEBUG', 'INFO', 'WARNING',
                         'ERROR', 'CRITICAL'],
-               help='Log level')
+               help='Log level for scyllabackup')
     parser.add('--path', required=True, help='Path of scylla data directory')
     parser.add('--db', required=True,
-               help='Path of scyllabackup db file')
-    parser.add('--provider', required=True, choices=['s3', 'wabs'])
-    parser.add('--nodetool-path', default='/usr/bin/nodetool')
-    parser.add('--cqlsh-path', default='/usr/bin/cqlsh')
-    parser.add('--cqlsh-host', default='127.0.0.1')
-    parser.add('--cqlsh-port', default='9042')
+               help='Path of scyllabackup db file. The backup metadata is '
+               'stored in this file.')
+    parser.add('--provider', required=True, choices=['s3', 'wabs'],
+               help='Cloud provider used for storage. It should be one of `s3` '
+               'or `wabs`')
+    parser.add('--nodetool-path', default='/usr/bin/nodetool',
+               help='Path of nodetool utility on filesystem.')
+    parser.add('--cqlsh-path', default='/usr/bin/cqlsh',
+               help='Path of cqlsh utility on filesystem')
+    parser.add('--cqlsh-host', default='127.0.0.1',
+               help='Host to use for connecting cqlsh service')
+    parser.add('--cqlsh-port', default='9042',
+               help='Port to use for connecting cqlsh service')
 
     s3 = parser.add_argument_group("Required arguments if using "
                                    "'s3' provider")
     s3.add('--s3-bucket-name', metavar='BUCKET_NAME',
            help='Mandatory if provider is s3')
-    s3.add('--s3-aws-key', metavar='AWS_KEY')
-    s3.add('--s3-aws-secret', metavar='AWS_SECRET')
+    s3.add('--s3-aws-key', metavar='AWS_KEY',
+           help='Mandatory if provider is s3')
+    s3.add('--s3-aws-secret', metavar='AWS_SECRET',
+           help='Mandatory if provider is s3')
     wabs = parser.add_argument_group("Required arguments if using "
                                      "'wabs' provider")
     wabs.add('--wabs-container-name', help='Mandatory if provider is wabs')
@@ -197,10 +206,10 @@ def common_parser():
                help='Mandatory prefix to store backups in cloud storage')
 
     parser.add('--lock', default='/var/run/lock/scyllabackup.lock',
-               help='Lock file for scyllabackup')
+               help='Lock file for scyllabackup.')
 
     parser.add('--lock-timeout', type=int, default=10,
-               help='Lock file for scyllabackup')
+               help='Timeout for taking lock.')
 
     parser.add('--max-workers', type=int, default=4,
                help='Sets max workers for parallelizing storage api calls')
@@ -223,26 +232,33 @@ def parse_args(cli_args):
     parent_parser = common_parser()
     parser = configargparse.ArgParser(
         default_config_files=[],
-        description="Tool to manage scylla backups"
-    )
+        description="Tool to manage scylla backups")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
     take = subparsers.add_parser('take',
                                  help='Take a scylla snapshot and upload '
                                  'it to cloud storage',
-                                 parents=[parent_parser])
+                                 parents=[parent_parser],
+                                 formatter_class=configargparse.
+                                 DefaultsFormatter)
+
     take.set_defaults(func=take_snapshot)
 
     ls = subparsers.add_parser('list', help='List scylla snapshots',
-                               parents=[parent_parser])
+                               parents=[parent_parser],
+                               formatter_class=configargparse.
+                               DefaultsFormatter)
     ls.add('--latest-before', help='If specified, last 5 snapshot '
            'before specified timestamp will be listed.')
     ls.set_defaults(func=list_snapshots)
 
     download = subparsers.add_parser('download',
                                      help='Download a scylla snapshot',
-                                     parents=[parent_parser])
+                                     parents=[parent_parser],
+                                     formatter_class=configargparse.
+                                     DefaultsFormatter)
+
     download.add('--keyspace', default=None,
                  help='If specified, operation will be performed on '
                  'specified keyspace only')
@@ -259,7 +275,10 @@ def parse_args(cli_args):
 
     db = subparsers.add_parser('download_db',
                                help='Download a scyllabackup backup db',
-                               parents=[parent_parser])
+                               parents=[parent_parser],
+                               formatter_class=configargparse.
+                               DefaultsFormatter)
+
     db.add('db_download_path', type=str,
            help='Delete all snapshots older '
            'than specified days')
@@ -267,7 +286,9 @@ def parse_args(cli_args):
 
     delete = subparsers.add_parser('delete_older_than',
                                    help='Delete scylla snapshots',
-                                   parents=[parent_parser])
+                                   parents=[parent_parser],
+                                   formatter_class=configargparse.
+                                   DefaultsFormatter)
     delete.add('days', type=int,
                help='Delete all snapshots older '
                'than specified days')
@@ -275,14 +296,19 @@ def parse_args(cli_args):
 
     verify = subparsers.add_parser('verify',
                                    help='Verify all files of a snapshot',
-                                   parents=[parent_parser])
+                                   parents=[parent_parser],
+                                   formatter_class=configargparse.
+                                   DefaultsFormatter)
+
     verify.add('snapshot', type=int,
                help='Snapshot Name for which files will be verified')
     verify.set_defaults(func=verify_snapshot)
 
     restore_schema = subparsers.add_parser('restore_schema', help='Restore '
                                            'schema from specified file in '
-                                           'scylladb', parents=[parent_parser])
+                                           'scylladb', parents=[parent_parser],
+                                           formatter_class=configargparse.
+                                           DefaultsFormatter)
     restore_schema.add('schema_file',
                        help="Path of the cql file to restore db schema")
     restore_schema.add('-f', '--force', action='store_true',
@@ -295,7 +321,9 @@ def parse_args(cli_args):
                                   'folders to new database folders. This '
                                   'command outputs a json output on stdout '
                                   'which can then be used by the restore '
-                                  'command', parents=[parent_parser]))
+                                  'command', parents=[parent_parser],
+                                  formatter_class=configargparse.
+                                  DefaultsFormatter))
     restore_mapping.add('--keyspace', required=True, help='Keyspace for which '
                         'you want to get restore mappings')
     restore_mapping.add('--restore-path', required=True, help='Path where the '
@@ -307,7 +335,8 @@ def parse_args(cli_args):
     restore = (subparsers.
                add_parser('restore', help='Get restore mapping for moving '
                           'files from old database folders to new database '
-                          'folders', parents=[parent_parser]))
+                          'folders', parents=[parent_parser],
+                          formatter_class=configargparse.DefaultsFormatter))
 
     restore.add('--restore-path', help='Path where the restore files are '
                 'downloaded')
