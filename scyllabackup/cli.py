@@ -9,6 +9,7 @@ from spongeblob.retriable_storage import RetriableStorage
 from botocore.client import Config
 import filelock
 import json
+from pkg_resources import get_distribution
 
 
 def make_storage(args):
@@ -233,6 +234,10 @@ def parse_args(cli_args):
     parser = configargparse.ArgParser(
         default_config_files=[],
         description="Tool to manage scylla backups")
+
+    parser.add('-v', '--version', action='version',
+               version='scyllabackup {0}'.
+               format(get_distribution('scyllabackup').version))
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
