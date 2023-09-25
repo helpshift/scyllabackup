@@ -16,7 +16,7 @@ setup(name='scyllabackup',
       install_requires=['spongeblob==0.1.1',
                         'tenacity==4.10.0',
                         'sh==1.12.14',
-                        'gevent==1.2.2',
+                        'gevent==23.9.1',
                         'ConfigArgParse==0.13.0',
                         'filelock==3.0.4'
                         ],
